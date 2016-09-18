@@ -1,14 +1,17 @@
 {
   "name": "votie",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "I'm a bot that makes voting in North Carolina a smidge easier",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "bot",
+    "voting",
+    "bot framework"
+  ],
+  "author": "Steven Follis",
   "license": "MIT",
   "dependencies": {
     "addressit": "^1.4.0",
