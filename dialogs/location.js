@@ -2,6 +2,7 @@ var builder = require('botbuilder');
 var request = require('request');
 var cheerio = require('cheerio');
 var addressit = require('addressit');
+var appInsights = require('../config/appInsights.js');
 
 module.exports = [
 
@@ -149,6 +150,9 @@ function getRegistrations(person, callback) {
 
     // GET the registration page
     request(url, function (error, response, body) {
+
+        // Log query
+        appInsights.trackEvent('queryLocation');
 
         var $ = cheerio.load(body);
 
