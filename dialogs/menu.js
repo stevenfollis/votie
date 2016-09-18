@@ -31,7 +31,7 @@ module.exports = [
         }
         else {
             // Exit the menu
-            session.endDialog();
+            session.beginDialog('/reset');
         }
     },
     function (session, results) {
