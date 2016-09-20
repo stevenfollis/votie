@@ -21,3 +21,6 @@ Votie is currently implemented with the [Microsoft Bot Framework](https://dev.bo
 * register - returns a hyperlink to North Carolina's Voter Registration PDF file
 
 ## Technical Details
+
+## Screenshot
+![screenshot](./media/image-002.png)
