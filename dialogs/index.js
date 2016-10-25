@@ -9,7 +9,7 @@ module.exports = (bot) => {
             // Send a greeting and show help.
             var card = new builder.HeroCard(session)
                 .title("Votie")
-                .text("Howdy! I'm Votie, a bot made to help making voting easier for you! I know all about voting in North Carolina");
+                .text("Howdy! I'm Votie, a bot made to help making voting easier for you! I know all about voting in the ol' US of A");
 
             var msg = new builder.Message(session).attachments([card]);
             session.send(msg);

@@ -8,7 +8,7 @@ module.exports = (session) => {
                 .title("Voting Day")
                 .subtitle("Tuesday, November 8th 2016 is Voting Day")
                 .text('It will be here before you know it! Are you registered?')
-                .tap(builder.CardAction.openUrl(session, "http://www.ncsbe.gov/election-calendar"))
+                .tap(builder.CardAction.openUrl(session, `https://www.rockthevote.com/register-to-vote`))
         ]);
 
     session.send(msg);

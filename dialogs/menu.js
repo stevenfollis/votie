@@ -2,7 +2,7 @@ var builder = require('botbuilder');
 
 module.exports = [
     function (session) {
-        builder.Prompts.choice(session, "I can help with lots of tasks! Which of these would you like help with?", "where do i vote?|election date|website|register|(quit)");
+        builder.Prompts.choice(session, "I can help with lots of tasks! Which of these would you like help with?", "where do i vote?|election date|register|(quit)");
     },
     function (session, results) {
         if (results.response && results.response.entity != '(quit)') {
@@ -17,10 +17,6 @@ module.exports = [
                 case 'election date':
                     console.log('Starting election day');
                     session.beginDialog('/electionday');
-                    break;
-                case 'website':
-                    console.log('Starting election website');
-                    session.beginDialog('/website');
                     break;
                 case 'register':
                     console.log('Starting registration');

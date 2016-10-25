@@ -3,6 +3,7 @@ var request = require('request');
 var cheerio = require('cheerio');
 var addressit = require('addressit');
 var appInsights = require('../config/appInsights.js');
+var _ = require('lodash');
 
 module.exports = [
 
@@ -19,120 +20,53 @@ module.exports = [
     function (session, next) {
 
         // Check if first name is already known
-        if (session.userData.firstName) {
+        if (session.userData.address) {
             next();
         }
         else {
 
             // Prompt for first name
-            builder.Prompts.text(session, 'I\'ll need a bit of information. \n To start, what is your first name?');
+            builder.Prompts.text(session, 'I\'ll need a bit of information. \n To start, what is your full address?');
 
         }
 
     },
     function (session, results, next) {
 
-        // Store first name 
+        // Store address
         if (results.response !== null) {
-            session.userData.firstName = results.response;
+            session.userData.address = results.response;
         }
 
         // Check if last name is already known
-        if (session.userData.lastName) {
+        if (session.userData.voterInfo) {
             next();
         }
         else {
 
-            // Prompt user for last name
-            builder.Prompts.text(session, 'Thanks! Nice to meet you, ' + session.userData.firstName + '. Now, what is your last name?');
+            // Get Voter Information
+            getVoterInfo(session.userData.address).then(function (voterInfo) {
+
+                // Store voter information
+                session.userData.voterInfo = voterInfo;
+                console.log(`Stored Voter Information`);
+
+                // Notify user 
+                session.send(`Thanks! I located your voter information`);
+                next();
+
+            });
 
         }
 
     },
+
     function (session, results, next) {
 
-        // Store last name
-        if (results.response !== null) {
-            session.userData.lastName = results.response;
-        }
+        // Create a message card to return to user
+        buildMessage(session).then(function (message) {
 
-        // Query site for list of registrations matching the query
-        getRegistrations(session.userData, function (registrations) {
-
-            // Store the returned set of registrations 
-            session.dialogData.registrations = registrations;
-
-            // Zero people returned
-            if (registrations.length === 0) {
-                session.endDialog('I\'m sorry but I cannot locate any individuals registered with that name');
-            }
-
-            // If there is only one person we don't need to get clarification
-            if (registrations.length === 1) {
-                session.userData.registration = registrations[0];
-                next();
-            }
-
-            // If more than one person is found we need the user to clarify who they are
-            if (registrations.length > 1) {
-
-                // Build out markup for cards for each person
-                var registrationCards = buildRegistrationCards(session);
-
-                // Create carousel for user to clarify which person is them
-                var msg = new builder.Message(session)
-                    .attachmentLayout(builder.AttachmentLayout.carousel)
-                    .attachments(registrationCards.cards);
-
-                // Check how many voters are returned
-                session.send('Here are the folks I found in NC, which is you?');
-                builder.Prompts.choice(session, msg, registrationCards.choices);
-
-            }
-
-        });
-
-    },
-    function (session, results) {
-
-        // If user responded, locate correct person
-        if (results.response) {
-
-            // Loop through the set of registrations
-            for (var i = 0; i < session.dialogData.registrations.length; i++) {
-
-                // Locate the registration matching the user's selection and store it in userData
-                if (session.dialogData.registrations[i].registrationNumber === results.response.entity) {
-                    session.userData.registration = session.dialogData.registrations[i];
-                }
-
-            }
-
-        }
-
-        // Retrieve the person's polling place'
-        getPollingPlace(session.userData.registration.detailsUrl, function (pollingPlace, voterAddress) {
-
-            session.userData.address = voterAddress;
-
-            var mapUrl = 'http://dev.virtualearth.net/REST/v1/Imagery/Map/Road/Routes?wp.0=' + encodeURI(session.userData.address) + ';64;1&wp.1=' + encodeURI(pollingPlace.address) + ';66;2&key=' + process.env.BING_MAPS_API_KEY;
-
-            //session.send(mapUrl);
-            session.send('Your polling location is ' + pollingPlace.name + ' @ ' + pollingPlace.address);
-
-            // Create a polling location card
-            var msg = new builder.Message(session)
-                .attachments([
-                    new builder.HeroCard(session)
-                        .title("Your Polling Location")
-                        .subtitle(pollingPlace.name)
-                        .text(pollingPlace.address)
-                        .images([
-                            builder.CardImage.create(session, mapUrl)
-                        ])
-                        .tap(builder.CardAction.openUrl(session, "http://bing.com/maps/default.aspx?where1=" + pollingPlace.address))
-                ]);
-            session.endDialog(msg);
+            session.endDialog(message);
 
         });
 
@@ -140,91 +74,19 @@ module.exports = [
 
 ];
 
-function parseAddress(address) {
-    return parser.parseLocation(address);
-}
+function getVoterInfo(address) {
 
-function getRegistrations(person, callback) {
+    return new Promise((resolve, reject) => {
 
-    var url = 'https://enr.ncsbe.gov/voter_search_public/default.aspx?lname=' + person.lastName + '&lname_snd=False&fname=' + person.firstName + '&fname_snd=False&status=A,I,S';
+        let url = `https://www.googleapis.com/civicinfo/v2/voterinfo?key=${process.env.GOOGLE_API_KEY}&address=${address}`;
 
-    // GET the registration page
-    request(url, function (error, response, body) {
+        // Query the Google Civic Information API 
+        request(url, function (error, response, body) {
 
-        // Log query
-        appInsights.trackEvent('queryLocation');
+            if (error) reject(error);
 
-        var $ = cheerio.load(body);
-
-        // Parse the DOM to get returned voters
-        var voters = $('#gvVoters tr:not(:first-child)').toArray();
-
-        // Check if voter(s) were found for the queried name
-        if (voters.length === 0) {
-
-            // No voters found
-            callback([]);
-
-        }
-        else if (voters.length > 0) {
-
-            // Voter(s) found, build out response
-            var registrations = [];
-
-            // Loop through the voter DOM rows and parse into an object
-            for (var i = 0; i < voters.length; i++) {
-
-                // Pull voter values out of the DOM markup
-                registrations.push({
-                    name: voters[i].children[3].children[1].children[0].children[0].data,
-                    location: voters[i].children[4].children[0].data,
-                    detailsUrl: voters[i].children[3].children[1].attribs.href,
-                    registrationNumber: voters[i].children[3].children[1].attribs.href.split('=')[1].split('&')[0],
-                    county: voters[i].children[3].children[1].attribs.href.split('=')[2]
-                });
-
-                // Check if all voters have been processed
-                if (voters.length == registrations.length) {
-                    console.log('Scraped ' + registrations.length + ' from the web');
-                    callback(registrations);
-                }
-
-            }
-
-        }
-
-    });
-
-}
-
-function getPollingPlace(urlFragment, callback) {
-
-    var url = 'https://enr.ncsbe.gov/voter_search_public/' + urlFragment;
-
-    request(url, function (error, results, body) {
-
-        // Parse the DOM
-        $ = cheerio.load(body);
-
-        // Build out the polling place object
-        var pollingPlace = {
-            name: $('#hlPollingPlaceName').text(),
-            address: $('#lblPollingPlaceAddr').html().split('<br>').join(' ').trim()
-        };
-
-        var rawAddress = $('#lblVoterAddress').html().split('<br>').join(' ').trim().replace(/#\s/, '#');
-
-        var cleanedAddress = addressit(rawAddress);
-        var simplifiedAddress = [cleanedAddress.number, cleanedAddress.street, cleanedAddress.regions[0], cleanedAddress.state].join(' ');
-
-        // Grab the voter's address'
-        var mapQueryUrl = 'http://dev.virtualearth.net/REST/v1/Locations?q=' + simplifiedAddress + '&o=json&key=' + process.env.BING_MAPS_API_KEY;
-        request(mapQueryUrl, function (error, response, body) {
-
-            // Parse out the top result address`
-            var address = JSON.parse(body).resourceSets[0].resources[0].name;
-
-            callback(pollingPlace, address);
+            console.log(`Retrieved Voter Information`);
+            resolve(JSON.parse(body));
 
         });
 
@@ -232,37 +94,57 @@ function getPollingPlace(urlFragment, callback) {
 
 }
 
-function buildRegistrationCards(session) {
+function buildMessage(session) {
 
-    var cards = [];
-    var choices = [];
+    return new Promise((resolve, reject) => {
 
-    // Loop through the registrations and built an array of cards
-    for (var i = 0; i < session.dialogData.registrations.length; i++) {
+        // Define an array to holder message attachments
+        var cardsArray = [];
 
-        cards.push(
-            new builder.HeroCard(session)
-                .title(session.dialogData.registrations[i].name)
-                .subtitle(session.dialogData.registrations[i].location)
-                .buttons([
-                    builder.CardAction.imBack(session, session.dialogData.registrations[i].registrationNumber, "This is Me")
+        // Polling Locations is returned as an array
+        // There may be multiple polling locations
+        // Loop through the locations and build messages
+
+        var locations = session.userData.voterInfo.pollingLocations;
+        locations.forEach((location, i) => {
+
+            location.address.fullAddress = getFullAddress(location);
+
+            var card = new builder.HeroCard(session)
+                .title(`${location.address.locationName} (${location.notes})`)
+                .subtitle(`Hours: ${location.pollingHours}`)
+                .text(location.address.fullAddress)
+                .images([
+                    builder.CardImage.create(session, generateStaticMap(session.userData.address, location.address.fullAddress))
                 ])
-        );
+                .tap(builder.CardAction.openUrl(session, `http://bing.com/maps/default.aspx?rtp=adr.${session.userData.address}~adr.${location.address.fullAddress}`));
 
-        choices.push(session.dialogData.registrations[i].registrationNumber);
+            cardsArray.push(card);
 
-    }
+        });
 
-    // Add a not me card
-    cards.push(
-        new builder.HeroCard(session)
-            .title('Oops')
-            .buttons([
-                builder.CardAction.imBack(session, "none", "None of these are me")
-            ])
-    );
+        // Create a message
+        var message = new builder.Message(session).attachments(cardsArray);
 
-    return { cards: cards, choices: choices };
+        // Resolve message
+        resolve(message);
+
+    });
 
 }
 
+function generateStaticMap(startAddress, endAddress) {
+
+    // Given two addresses, generate the URL for a Bing Maps Static Map image
+    // https://msdn.microsoft.com/en-us/library/ff701724.aspx
+    return `http://dev.virtualearth.net/REST/v1/Imagery/Map/Road/Routes?wp.0=${encodeURI(startAddress)};64;1&wp.1=${encodeURI(endAddress)};66;2&key=${process.env.BING_MAPS_API_KEY}`;
+
+}
+
+function getFullAddress(locationObject) {
+
+    // Take a location object and create a simplified address string
+    // Removed the locationName string, and only focused on line1
+    return `${locationObject.address.line1} ${locationObject.address.city} ${locationObject.address.state} ${locationObject.address.zip}`;
+
+}
