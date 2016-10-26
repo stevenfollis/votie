@@ -140,7 +140,8 @@ function buildMessage(session) {
                     });
 
                     // Create a message
-                    var message = new builder.Message(session).text(`${contest.office} - vote for ${contest.numberVotingFor}`).attachmentLayout(builder.AttachmentLayout.carousel).attachments(cardsArray);
+                    //var message = new builder.Message(session).text(`${contest.office} - vote for ${contest.numberVotingFor}`).attachmentLayout(builder.AttachmentLayout.carousel).attachments(cardsArray);
+                    var message = new builder.Message(session).attachmentLayout(builder.AttachmentLayout.carousel).attachments(cardsArray);
                     session.send(message);
 
                 }
