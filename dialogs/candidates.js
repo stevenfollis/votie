@@ -125,42 +125,48 @@ function buildMessage(session) {
 
             // if (i === 0 || i === 1 || i === 2 || i === 3 || i === 4) {
 
-                // Check if contest has candidates
-                if (contest.candidates) {
+            // Check if contest has candidates
+            if (contest.candidates) {
 
-                    // Loop through each candidate for the contest and build a card
-                    contest.candidates.forEach(function (candidate, j) {
+                // First card in the carousel is a description of the contest
+                var card = new builder.HeroCard(session)
+                    .title(contest.office)
+                    .subtitle(`Vote for ${contest.numberVotingFor}`);
+                cardsArray.push(card);
 
-                        var card = new builder.HeroCard(session)
-                            .title(candidate.name)
-                            .subtitle(candidate.party);
+                // Loop through each candidate for the contest and build a card
+                contest.candidates.forEach(function (candidate, j) {
 
-                        cardsArray.push(card);
-
-                    });
-
-                    // Create a message
-                    //var message = new builder.Message(session).text(`${contest.office} - vote for ${contest.numberVotingFor}`).attachmentLayout(builder.AttachmentLayout.carousel).attachments(cardsArray);
-                    var message = new builder.Message(session).attachmentLayout(builder.AttachmentLayout.carousel).attachments(cardsArray);
-                    session.send(message);
-
-                }
-
-                // Check if contest is a referendum
-                if (contest.type === 'Referendum' || contest.type === 'General Referenda') {
-
-                    // Create card for the referendum
                     var card = new builder.HeroCard(session)
-                        .title(contest.referendumTitle)
-                        .subtitle(contest.referendumPassageThreshold)
-                        .text(contest.referendumText);
+                        .title(candidate.name)
+                        .subtitle(candidate.party);
 
-                    referendumsArray.push(card);
+                    cardsArray.push(card);
 
-                }
+                });
 
-                // Empty array for next contest
-                cardsArray = [];
+                // Create a message
+                //var message = new builder.Message(session).text(`${contest.office} - vote for ${contest.numberVotingFor}`).attachmentLayout(builder.AttachmentLayout.carousel).attachments(cardsArray);
+                var message = new builder.Message(session).attachmentLayout(builder.AttachmentLayout.carousel).attachments(cardsArray);
+                session.send(message);
+
+            }
+
+            // Check if contest is a referendum
+            if (contest.type === 'Referendum' || contest.type === 'General Referenda') {
+
+                // Create card for the referendum
+                var card = new builder.HeroCard(session)
+                    .title(contest.referendumTitle)
+                    .subtitle(contest.referendumPassageThreshold)
+                    .text(contest.referendumText);
+
+                referendumsArray.push(card);
+
+            }
+
+            // Empty array for next contest
+            cardsArray = [];
 
             // }
 
