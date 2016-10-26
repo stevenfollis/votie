@@ -153,7 +153,12 @@ function buildMessage(session) {
                 }
 
                 // Check if contest is a referendum
-                if (contest.type === 'Referendum' || contest.type === 'General Referenda') {
+                if (contest.type === `Referendum` || contest.type === `General Referenda`) {
+
+                    // First card in the carousel is a description of the referendum
+                    var card = new builder.HeroCard(session)
+                        .title(`Referendums`)
+                    cardsArray.push(card);
 
                     // Create card for the referendum
                     var card = new builder.HeroCard(session)
@@ -174,7 +179,7 @@ function buildMessage(session) {
 
         // Send any Referendums in a single message
         if (referendumsArray.length > 0) {
-            var message = new builder.Message(session).text(`Referendums`).attachmentLayout(builder.AttachmentLayout.carousel).attachments(referendumsArray);
+            var message = new builder.Message(session).attachmentLayout(builder.AttachmentLayout.carousel).attachments(referendumsArray);
             session.send(message);
         }
 
