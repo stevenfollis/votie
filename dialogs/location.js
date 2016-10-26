@@ -43,17 +43,24 @@ module.exports = [
         else {
 
             // Get Voter Information
-            getVoterInfo(session.userData.address).then(function(voterInfo) {
+            getVoterInfo(session.userData.address)
+                .then(function(voterInfo) {
 
-                // Store voter information
-                session.userData.voterInfo = voterInfo;
-                console.log(`Stored Voter Information`);
+                    // Store voter information
+                    session.userData.voterInfo = voterInfo;
+                    console.log(`Stored Voter Information`);
 
-                // Notify user 
-                session.send(`Thanks! I located your voter information`);
-                next();
+                    // Notify user 
+                    session.send(`Thanks! I located your voter information`);
+                    next();
 
-            });
+                })
+                .catch(function(error) {
+
+                    session.userData = {};
+                    session.endDialog(`Sorry, but I had a problem locating that address. Let's try again.`)
+
+                });
 
         }
 
@@ -79,12 +86,12 @@ function getVoterInfo(address) {
         let url = `https://www.googleapis.com/civicinfo/v2/voterinfo?key=${process.env.GOOGLE_API_KEY}&address=${address}`;
 
         // Query the Google Civic Information API 
-        request(url, function(error, response, body) {
+        request(url, { json: true }, function(error, response, body) {
 
-            if (error) reject(error);
+            if (body.error) reject(error);
 
             console.log(`Retrieved Voter Information`);
-            resolve(JSON.parse(body));
+            resolve(body);
 
         });
 
