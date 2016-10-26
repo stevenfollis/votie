@@ -129,7 +129,7 @@ function buildMessage(session) {
         // Loop through the voteInfo to build out a message per each contest
         session.userData.voterInfo.contests.forEach(function (contest, i) {
 
-            if (i < 10) {
+            if (i < 5) {
 
                 // Check if contest has candidates
                 if (contest.candidates) {
