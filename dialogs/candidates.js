@@ -129,7 +129,7 @@ function buildMessage(session) {
         // Loop through the voteInfo to build out a message per each contest
         session.userData.voterInfo.contests.forEach(function (contest, i) {
 
-            if (i < 5) {
+            if (i < 10) {
 
                 // Check if contest has candidates
                 if (contest.candidates) {
@@ -152,7 +152,7 @@ function buildMessage(session) {
 
                     // Create a message
                     //var message = new builder.Message(session).text(`${contest.office} - vote for ${contest.numberVotingFor}`).attachmentLayout(builder.AttachmentLayout.carousel).attachments(cardsArray);
-                    var message = new builder.Message(session).attachmentLayout(builder.AttachmentLayout.carousel).attachments(cardsArray);
+                    var message = new builder.Message(session).attachmentLayout(builder.AttachmentLayout.carousel).attachments(cardsArray[1]);
                     session.send(message);
 
                 }
