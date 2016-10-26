@@ -1,13 +1,11 @@
 var builder = require('botbuilder');
 var request = require('request');
-var cheerio = require('cheerio');
-var addressit = require('addressit');
 var appInsights = require('../config/appInsights.js');
 var _ = require('lodash');
 
 module.exports = [
 
-    function (session, args, next) {
+    function(session, args, next) {
 
         // Store userData in session if it's available'
         session.userData = args || {};
@@ -17,35 +15,35 @@ module.exports = [
         next();
 
     },
-    function (session, next) {
+    function(session, next) {
 
-        // Check if first name is already known
+        // Check if address is already known
         if (session.userData.address) {
             next();
         }
         else {
 
-            // Prompt for first name
+            // Prompt for address
             builder.Prompts.text(session, 'I\'ll need a bit of information. \n To start, what is your full address?');
 
         }
 
     },
-    function (session, results, next) {
+    function(session, results, next) {
 
         // Store address
         if (results.response !== null) {
             session.userData.address = results.response;
         }
 
-        // Check if last name is already known
+        // Check if voter info is already known
         if (session.userData.voterInfo) {
             next();
         }
         else {
 
             // Get Voter Information
-            getVoterInfo(session.userData.address).then(function (voterInfo) {
+            getVoterInfo(session.userData.address).then(function(voterInfo) {
 
                 // Store voter information
                 session.userData.voterInfo = voterInfo;
@@ -61,10 +59,10 @@ module.exports = [
 
     },
 
-    function (session, results, next) {
+    function(session, results, next) {
 
         // Create a message card to return to user
-        buildMessage(session).then(function (message) {
+        buildMessage(session).then(function(message) {
 
             session.endDialog(message);
 
@@ -81,7 +79,7 @@ function getVoterInfo(address) {
         let url = `https://www.googleapis.com/civicinfo/v2/voterinfo?key=${process.env.GOOGLE_API_KEY}&address=${address}`;
 
         // Query the Google Civic Information API 
-        request(url, function (error, response, body) {
+        request(url, function(error, response, body) {
 
             if (error) reject(error);
 
