@@ -164,9 +164,11 @@ function buildMessage(session) {
 
         });
 
-        // Send Referendum message
-        var message = new builder.Message(session).text(`Referendums`).attachmentLayout(builder.AttachmentLayout.carousel).attachments(referendumsArray);
-        session.send(message);
+        // Send any Referendums in a single message
+        if (referendumsArray.length > 0) {
+            var message = new builder.Message(session).text(`Referendums`).attachmentLayout(builder.AttachmentLayout.carousel).attachments(referendumsArray);
+            session.send(message);
+        }
 
         // Resolve message
         resolve();
