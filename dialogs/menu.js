@@ -2,7 +2,7 @@ var builder = require('botbuilder');
 
 module.exports = [
     function (session) {
-        builder.Prompts.choice(session, "I can help with lots of tasks! Which of these would you like help with?", "where do i vote?|election date|candidates|register|(quit)");
+        builder.Prompts.choice(session, "I can help with lots of tasks! Which of these would you like help with?", "where do i vote?|candidates|election date|register|(quit)");
     },
     function (session, results) {
         if (results.response && results.response.entity != '(quit)') {

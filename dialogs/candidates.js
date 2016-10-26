@@ -11,7 +11,7 @@ module.exports = [
         // Check if the stored address should be used
         if (session.userData.address) {
 
-            builder.Prompts.confirm(session, "I can help look up your national and local election candidates! Should I use your address from earlier?");
+            builder.Prompts.confirm(session, `I can help look up your national and local election candidates! Should I use your address from earlier? (${session.userData.address})`);
 
         }
         else {
@@ -26,14 +26,20 @@ module.exports = [
     function (session, results, next) {
 
         if (results.response === true) {
+
             // Use the existing address
             session.send(`OK, looking up candidates for ${session.userData.address}`);
             next();
 
         }
         else {
+
+            // Clear existing information
+            session.userData = {};
+
             // Get address 
             builder.Prompts.text(session, 'I\'ll need a bit of information. \n To start, what is your full address?');
+
         }
 
     },
@@ -51,17 +57,24 @@ module.exports = [
         else {
 
             // Get Voter Information
-            getVoterInfo(session.userData.address).then(function (voterInfo) {
+            getVoterInfo(session.userData.address)
+                .then(function (voterInfo) {
 
-                // Store voter information
-                session.userData.voterInfo = voterInfo;
-                console.log(`Stored Voter Information`);
+                    // Store voter information
+                    session.userData.voterInfo = voterInfo;
+                    console.log(`Stored Voter Information`);
 
-                // Notify user 
-                session.send(`Thanks! I located your voter information`);
-                next();
+                    // Notify user 
+                    session.send(`Thanks! I located your voter information`);
+                    next();
 
-            });
+                })
+                .catch(function (error) {
+
+                    session.userData = {};
+                    session.endDialog(`Sorry, but I had a problem locating that address. Let's try again.`)
+
+                });
 
         }
 
@@ -87,12 +100,12 @@ function getVoterInfo(address) {
         let url = `https://www.googleapis.com/civicinfo/v2/voterinfo?key=${process.env.GOOGLE_API_KEY}&address=${address}`;
 
         // Query the Google Civic Information API 
-        request(url, function (error, response, body) {
+        request(url, { json: true }, function (error, response, body) {
 
-            if (error) reject(error);
+            if (body.error) reject(error);
 
             console.log(`Retrieved Voter Information`);
-            resolve(JSON.parse(body));
+            resolve(body);
 
         });
 
@@ -105,6 +118,7 @@ function buildMessage(session) {
     return new Promise((resolve, reject) => {
 
         var cardsArray = [];
+        var referendumsArray = [];
 
         // Loop through the voteInfo to build out a message per each contest
         session.userData.voterInfo.contests.forEach(function (contest, i) {
@@ -112,28 +126,47 @@ function buildMessage(session) {
             // Describe the contest
             session.send();
 
-            // Loop through each candidate for the contest and build a card
-            contest.candidates.forEach(function (candidate, j) {
+            // Check if contest has candidates
+            if (contest.candidates) {
 
+                // Loop through each candidate for the contest and build a card
+                contest.candidates.forEach(function (candidate, j) {
+
+                    var card = new builder.HeroCard(session)
+                        .title(candidate.name)
+                        .subtitle(candidate.party);
+
+                    cardsArray.push(card);
+
+                });
+
+                // Create a message
+                var message = new builder.Message(session).text(`${contest.office} - vote for ${contest.numberVotingFor}`).attachmentLayout(builder.AttachmentLayout.carousel).attachments(cardsArray);
+                session.send(message);
+
+            }
+
+            // Check if contest is a referendum
+            if (contest.type === 'Referendum' || contest.type === 'General Referenda') {
+
+                // Create card for the referendum
                 var card = new builder.HeroCard(session)
-                    .title(candidate.name)
-                    .subtitle(candidate.party);
+                    .title(contest.referendumTitle)
+                    .subtitle(contest.referendumPassageThreshold)
+                    .text(contest.referendumText);
 
-                cardsArray.push(card);
+                referendumsArray.push(card);
 
-            });
-
-            // Create a message
-            var message = new builder.Message(session).text(`${contest.office} - vote for ${contest.numberVotingFor}`).attachmentLayout(builder.AttachmentLayout.carousel).attachments(cardsArray);
-            session.send(message);
+            }
 
             // Empty array for next contest
             cardsArray = [];
 
         });
 
-        // // Create a message
-        // var message = new builder.Message(session).attachments(cardsArray);
+        // Send Referendum message
+        var message = new builder.Message(session).text(`Referendums`).attachmentLayout(builder.AttachmentLayout.carousel).attachments(referendumsArray);
+        session.send(message);
 
         // Resolve message
         resolve();
