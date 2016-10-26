@@ -140,7 +140,6 @@ function buildMessage(session) {
                         var card = new builder.HeroCard(session)
                             .title(candidate.name)
                             .subtitle(candidate.party);
-
                         cardsArray.push(card);
 
                     });
