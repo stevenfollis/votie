@@ -102,7 +102,7 @@ function getVoterInfo(address) {
         // Query the Google Civic Information API 
         request(url, { json: true }, function (error, response, body) {
 
-            if (body.error) reject(error);
+            if (body.error) reject(body.error);
 
             console.log(`Retrieved Voter Information`);
             resolve(body);
@@ -176,21 +176,5 @@ function buildMessage(session) {
         resolve();
 
     });
-
-}
-
-function generateStaticMap(startAddress, endAddress) {
-
-    // Given two addresses, generate the URL for a Bing Maps Static Map image
-    // https://msdn.microsoft.com/en-us/library/ff701724.aspx
-    return `http://dev.virtualearth.net/REST/v1/Imagery/Map/Road/Routes?wp.0=${encodeURI(startAddress)};64;1&wp.1=${encodeURI(endAddress)};66;2&key=${process.env.BING_MAPS_API_KEY}`;
-
-}
-
-function getFullAddress(locationObject) {
-
-    // Take a location object and create a simplified address string
-    // Removed the locationName string, and only focused on line1
-    return `${locationObject.address.line1} ${locationObject.address.city} ${locationObject.address.state} ${locationObject.address.zip}`;
 
 }

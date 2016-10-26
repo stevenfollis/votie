@@ -88,7 +88,7 @@ function getVoterInfo(address) {
         // Query the Google Civic Information API 
         request(url, { json: true }, function(error, response, body) {
 
-            if (body.error) reject(error);
+            if (body.error) reject(body.error);
 
             console.log(`Retrieved Voter Information`);
             resolve(body);
