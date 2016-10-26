@@ -72,7 +72,13 @@ module.exports = [
                 .catch(function (error) {
 
                     session.userData = {};
-                    session.endDialog(`Sorry, but I had a problem locating that address. Let's try again.`)
+
+                    if (error.message === `Election unknown`) {
+                        session.endDialog(`Sorry, but I had a problem locating that address because election data has not yet been loaded for your location. Please try again soon!`)
+                    }
+                    else {
+                        session.endDialog(`Sorry, but I had a problem locating that address. Let's try again.`)
+                    }
 
                 });
 
